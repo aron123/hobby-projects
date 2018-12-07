@@ -1,0 +1,28 @@
+table, tr, td {
+    border: 1px solid black;
+}
+
+td {
+    width: 25px;
+    height: 25px;
+}
+
+.game-field-cell {
+    background-color: beige;
+    box-shadow: inset 0px 0px 3px 1px rgba(0,0,0,0.75);
+    font-weight: bold;
+    color: black;
+    text-align: center;
+}
+
+.bomb-cell {
+    font-weight: bold;
+    color: red;
+    text-align: center;
+}
+
+.num-cell {
+    font-weight: bold;
+    color: blue;
+    text-align: center;
+}
