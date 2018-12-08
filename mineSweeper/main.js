@@ -23,7 +23,9 @@ let settings = {
         '6': '#7f7fff',
         '7': '#000000',
         '8': '#7f7f7f'
-    }
+    },
+    winMessageInnerHTML: `<div class="win-msg">YAY, you won.</div>`,
+    lostMessageInnerHTML: `<div class="lost-msg">OH NOO, you lost.</div>`
 };
 
 const GameCell = function (value, visible = false) {
@@ -125,9 +127,9 @@ function handleCellClick (event) {
 
     if (isGameEnded(settings.gameField)) {
         if (isUserWon(settings.gameField)) {
-            console.log('YAY, you won'); //TODO: message on UI
+            displayResult(settings.winMessageInnerHTML);
         } else {
-            console.log('OH NOO, you lost'); //TODO: message on UI
+            displayResult(settings.lostMessageInnerHTML);
             showAllBombs(settings.gameField);
         }
         removeCellsEventListeners();

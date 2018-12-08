@@ -1,10 +1,23 @@
-table, tr, td {
+body {
+    margin: 5px;
+    display: flex;
+}
+
+#app, #controller {
+    padding: 10px;
+}
+
+#app table, #app tr, #app td {
     border: 1px solid black;
 }
 
-td {
+#app td {
     width: 25px;
     height: 25px;
+}
+
+#controller td {
+    padding: 10px;
 }
 
 .game-field-cell {
@@ -13,6 +26,7 @@ td {
     font-weight: bold;
     color: black;
     text-align: center;
+    cursor: pointer;
 }
 
 .bomb-cell {
@@ -25,4 +39,14 @@ td {
     font-weight: bold;
     color: blue;
     text-align: center;
+}
+
+.win-msg {
+    font-weight: bold;
+    color: green;
+}
+
+.lost-msg {
+    font-weight: bold;
+    color: red;
 }

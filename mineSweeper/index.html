@@ -9,9 +9,35 @@
     <script src="prototypeExtension.js"></script>
     <script src="binding.js"></script>
     <script src="main.js"></script>
+    <script src="controller.js"></script>
 </head>
 <body>
     <div id="app"></div>
+    <div id="controller">
+        <table>
+            <tr>
+                <td>Result:</td>
+                <td id="result"><!-- --></td>
+            </tr>
+            <tr>
+                <td>Width:</td>
+                <td><input type="number" id="width"></td>
+            </tr>
+            <tr>
+                <td>Height:</td>
+                <td><input type="number" id="height"></td>
+            </tr>
+            <tr>
+                <td># of bombs:</td>
+                <td><input type="number" id="bombCount"></td>
+            </tr>
+            <tr>
+                <td colspan="2" style="text-align: center">
+                    <button onclick="startNewGame()">Start new game</button>
+                </td>
+            </tr>
+        </table>
+    </div>
     <script>
         document.addEventListener('DOMContentLoaded', initializeField);
     </script>
