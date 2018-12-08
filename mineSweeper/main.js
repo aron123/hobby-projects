@@ -1,17 +1,73 @@
-const settings = {
+let settings = {
     game: null,
     gameField: null,
-    gameWidth: 20,
-    gameHeight: 20,
-    bombCount: 25,
+    gameWidth: 5,
+    gameHeight: 5,
+    bombCount: 3,
     defaultCellInnerHTML: '#',
-    bombInnerHTML: `<div class="bomb-cell">B</div>`
+    bombMarkedCellInnerHTML: '~',
+    bombInnerHTML: `<div class="bomb-cell">B</div>`,
+    numberCellInnerHTML: (num) => { 
+        return `<div class="num-cell" style="color:${settings.numberCellColors[num]}">${num}</div>`
+    },
+    numberCellColors: {
+        '1': '#0000ff',
+        '2': '#007f00',
+        '3': '#ff0000',
+        '4': '#00007f',
+        '5': '#7f0000',
+        '6': '#7f7fff',
+        '7': '#000000',
+        '8': '#7f7f7f'
+    }
 };
 
 const GameCell = function (value, visible = false) {
-    this.value = value;
+    this.value = value; //true = bomb, number = number, null = empty
     this.visible = visible;
 };
+
+//source: https://stackoverflow.com/a/10142256/8691998
+Array.prototype.shuffle = function () {
+    var i = this.length, j, temp;
+
+    if ( i == 0 ) 
+        return this;
+
+    while ( --i ) {
+       j = Math.floor( Math.random() * ( i + 1 ) );
+       temp = this[i];
+       this[i] = this[j];
+       this[j] = temp;
+    }
+
+    return this;
+}
+
+Array.prototype.containsSubArray = function (subArray) {
+    for (let i of this) {
+        if (areArraysEqual(i, subArray)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function areArraysEqual (arr1, arr2) {
+    if (arr1.length != arr2.length) {
+        return false;
+    }
+    
+    for (let i in arr1) {
+        if (arr1[i] != arr2[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// =============================================
 
 function initializeField () {
     settings.game = document.querySelector('#app');
@@ -22,10 +78,9 @@ function initializeField () {
         getTable(settings.gameWidth, settings.gameHeight)
     );
     
-    const cells = document.querySelectorAll('.game-field-cell');
-    for (let cell of cells) {
-        cell.addEventListener('click', handleCellClick, false);
-    }
+    const cells = settings.game.querySelectorAll('.game-field-cell');
+    addEventListener(cells, 'click', handleCellClick);
+    addEventListener(cells, 'contextmenu', handleRightClick);
 }
 
 function getTable (width, height) {
@@ -63,29 +118,128 @@ function getGameField (width, height, bombCount) {
     );
 
     //put bombs to field
+    let cellIndexes = Array.from(new Array(width * height), (val, index) => index).shuffle();
+    
     for (let i = 0; i < bombCount; i++) {
-        let col = Math.floor((Math.random() * width));
-        let row = Math.floor((Math.random() * height));
-        //TODO: avoid collision
+        let index = cellIndexes.pop();
+        let row = Math.floor(index / height);
+        let col = index - row * height;
         gameField[row][col] = new GameCell(true);
     }
 
     //put numbers to field
-    //TODO: number calculation
+    for (let i=0; i < settings.gameHeight; i++) {
+        for (let j=0; j < settings.gameWidth; j++) {
+            if (gameField[i][j].value !== true) { //if not a bomb
+                gameField[i][j].value = calculateBombsAroundCell(gameField, i, j);
+            }
+        }
+    }
 
     return gameField;
+}
+
+function calculateBombsAroundCell (field, rownum, colnum) {
+    return getNeighboursOfCell(rownum, colnum, true)
+            .filter(indexes => getCellOfGameField(field, indexes[0], indexes[1]).value === true).length;
 }
 
 function handleCellClick (event) {
     let rownum = event.target.attributes['rownum'].value;
     let colnum = event.target.attributes['colnum'].value;
-    settings.gameField[rownum][colnum].visible = true;
+    let clickedCell = getCellOfGameField(settings.gameField, rownum, colnum);
 
-    //TODO: if number is 0, set other 0-value cells to visible
+    if (clickedCell.visible) {
+        return;
+    }
 
-    //TODO: if clicked on bomb, set all bomb visible
+    clickedCell.visible = true;
+    
+    if (clickedCell.value == 0) { //set 0-valued neighbours to visible
+        getZeroes([rownum, colnum], true).forEach(cell => 
+            getCellOfGameField(settings.gameField, cell[0], cell[1]).visible = true
+        );
+    }
+
+    if (isGameEnded()) {
+        if (isUserWon()) {
+            console.log('YAY, you won'); //TODO: message on UI
+        } else {
+            console.log('OH NOO, you lost'); //TODO: message on UI
+            showAllBombs(settings.gameField);
+        }
+        removeCellsEventListeners();
+    }
 
     arrayToHTML(settings.gameField);
+}
+
+function getZeroes (clickedCell, getBorders = false) {
+    let results = [];
+    let mined = [];
+    let front = [ clickedCell ];
+
+    while (front.length > 0) {
+        let element = front.shift();
+        let cell = getCellOfGameField(settings.gameField, element[0], element[1]);
+
+        if (cell.value === 0) {
+            mined.push(element);
+            results.push(element);
+            let neighbours = getNeighboursOfCell(element[0], element[1]);
+
+            neighbours.forEach(neighbour => {
+                let cell = getCellOfGameField(settings.gameField, neighbour[0], neighbour[1]);
+                if (cell.value !== 0 && getBorders) { //add borders if needed
+                    return results.push(neighbour);
+                }
+
+                if (mined.containsSubArray(neighbour) || front.containsSubArray(neighbour)) {
+                    return;
+                }
+
+                front.push(neighbour);
+            });
+        }
+    }
+
+    return results;
+}
+
+function getNeighboursOfCell (rownum, colnum, getCorners = false) {
+    let neighbours = [];
+
+    for (let i = rownum - 1; i <= rownum + 1; i++) {
+        for (let j = colnum - 1; j <= colnum + 1; j++) {
+            if (i == rownum && j == colnum ||                           //the cell itself
+                i < 0 || j < 0 ||                                       //outside the game field (left or up)
+                i >= settings.gameHeight || j >= settings.gameWidth) {  //outside the game field (right or bottom)
+                continue;
+            } else if ( !getCorners && (i != rownum && j != colnum) ) { //do not include corners
+                continue;
+            }
+
+            neighbours.push([i, j]);
+        }
+    }
+
+    return neighbours;
+}
+
+function handleRightClick (event) {
+    event.preventDefault();
+    event.target.innerHTML = (event.target.innerHTML == settings.bombMarkedCellInnerHTML) ? // mark/unmark cell as bomb
+                                    settings.defaultCellInnerHTML : settings.bombMarkedCellInnerHTML;
+}
+
+function showAllBombs (field) {
+    for (row of field) {
+        for (cell of row) {
+            if (cell.value === true) {
+                cell.visible = true;
+            }
+        }
+    }
 }
 
 function arrayToHTML (array) {
@@ -93,29 +247,82 @@ function arrayToHTML (array) {
 
     for (let i=0; i < array.length; i++) {
         for (let j=0; j < array[i].length; j++) { //iterate over array and refresh UI
-            let cell = cells[(i*settings.gameWidth + j)]; // get cell from one-dimension nodelist
+            let cell = cells[(i * settings.gameWidth + j)]; //get cell from one-dimension nodelist
             let data = array[i][j];
 
-            if (data.visible == false) {
+            if (data.visible === false) {
                 continue;
             }
 
             cell.classList.remove('bomb-cell');
             cell.classList.remove('num-cell');
 
-            if (data.value == null) {
+            if (data.value === null) {
                 cell.innerHTML = '';
-            } else if (data.value == true) {
+            } else if (data.value === true) {
                 cell.classList.add('bomb-cell');
                 cell.innerHTML = settings.bombInnerHTML;
             } else if (Number.isInteger(data.value)) {
                 cell.classList.add('num-cell')
-                cell.innerHTML = getNumberCellInnerHTML(data.value);
+                cell.innerHTML = (data.value == 0) ? '' : settings.numberCellInnerHTML(data.value);
             }
         }
     }
 }
 
-function getNumberCellInnerHTML (num) {
-    return `<div class="num-cell">${num}</div>`
+function isGameEnded () {
+    let field = settings.gameField;
+
+    if (isUserWon()) {
+        return true;
+    }
+
+    for (let row of field) {
+        for (let cell of row) {
+            if (cell.visible && cell.value === true) {
+                return true;
+            }
+        }
+    }
+    
+    return false;
 }
+
+function isUserWon () {
+    let field = settings.gameField;
+
+    for (let row of field) {
+        for (let cell of row) {
+            if (!cell.visible && cell.value !== true) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+function getCellOfGameField(field, rownum, colnum) {
+    return field[rownum][colnum];
+}
+
+function addEventListener (nodeList, eventString, callback) {
+    for (let node of nodeList) {
+        node.addEventListener(eventString, callback);
+    }
+}
+
+function removeEventListener (nodeList, eventString, callback) {
+    for (let node of nodeList) {
+        node.removeEventListener(eventString, callback);
+    }
+}
+
+function removeCellsEventListeners () {
+    let cells = settings.game.querySelectorAll('.game-field-cell');
+    removeEventListener(cells, 'click', handleCellClick);
+    removeEventListener(cells, 'contextmenu', handleRightClick);
+}
+
+//TODO: separate code to: prototype funcs, binding funcs, game logic
+//TODO: result display and controller buttons
