@@ -1,9 +1,13 @@
+/**
+ * Game logic functions.
+ */
+
 let settings = {
     game: null,
     gameField: null,
-    gameWidth: 5,
-    gameHeight: 5,
-    bombCount: 3,
+    gameWidth: 20,
+    gameHeight: 20,
+    bombCount: 30,
     defaultCellInnerHTML: '#',
     bombMarkedCellInnerHTML: '~',
     bombInnerHTML: `<div class="bomb-cell">B</div>`,
@@ -27,51 +31,9 @@ const GameCell = function (value, visible = false) {
     this.visible = visible;
 };
 
-//source: https://stackoverflow.com/a/10142256/8691998
-Array.prototype.shuffle = function () {
-    var i = this.length, j, temp;
-
-    if ( i == 0 ) 
-        return this;
-
-    while ( --i ) {
-       j = Math.floor( Math.random() * ( i + 1 ) );
-       temp = this[i];
-       this[i] = this[j];
-       this[j] = temp;
-    }
-
-    return this;
-}
-
-Array.prototype.containsSubArray = function (subArray) {
-    for (let i of this) {
-        if (areArraysEqual(i, subArray)) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-function areArraysEqual (arr1, arr2) {
-    if (arr1.length != arr2.length) {
-        return false;
-    }
-    
-    for (let i in arr1) {
-        if (arr1[i] != arr2[i]) {
-            return false;
-        }
-    }
-    return true;
-}
-
-// =============================================
-
 function initializeField () {
     settings.game = document.querySelector('#app');
-    settings.gameField = getGameField(settings.gameWidth, settings.gameHeight, settings.bombCount);
+    settings.gameField = createGameField(settings.gameWidth, settings.gameHeight, settings.bombCount);
     
     settings.game.innerHTML = '';
     settings.game.appendChild(
@@ -109,7 +71,7 @@ function getTableRow (rownum, width) {
     return row;
 }
 
-function getGameField (width, height, bombCount) {
+function createGameField (width, height, bombCount) {
     //initialize 2-dimension array that represents game field
     let gameField = Array.from({length: height}, () => Array.from(
             {length: width}, 
@@ -161,8 +123,8 @@ function handleCellClick (event) {
         );
     }
 
-    if (isGameEnded()) {
-        if (isUserWon()) {
+    if (isGameEnded(settings.gameField)) {
+        if (isUserWon(settings.gameField)) {
             console.log('YAY, you won'); //TODO: message on UI
         } else {
             console.log('OH NOO, you lost'); //TODO: message on UI
@@ -171,7 +133,19 @@ function handleCellClick (event) {
         removeCellsEventListeners();
     }
 
-    arrayToHTML(settings.gameField);
+    gameFieldToHTML(settings.game, settings.gameField);
+}
+
+function handleRightClick (event) {
+    event.preventDefault();
+    event.target.innerHTML = (event.target.innerHTML == settings.bombMarkedCellInnerHTML) ? // mark/unmark cell as bomb
+                                    settings.defaultCellInnerHTML : settings.bombMarkedCellInnerHTML;
+}
+
+function removeCellsEventListeners () {
+    let cells = settings.game.querySelectorAll('.game-field-cell');
+    removeEventListener(cells, 'click', handleCellClick);
+    removeEventListener(cells, 'contextmenu', handleRightClick);
 }
 
 function getZeroes (clickedCell, getBorders = false) {
@@ -226,12 +200,6 @@ function getNeighboursOfCell (rownum, colnum, getCorners = false) {
     return neighbours;
 }
 
-function handleRightClick (event) {
-    event.preventDefault();
-    event.target.innerHTML = (event.target.innerHTML == settings.bombMarkedCellInnerHTML) ? // mark/unmark cell as bomb
-                                    settings.defaultCellInnerHTML : settings.bombMarkedCellInnerHTML;
-}
-
 function showAllBombs (field) {
     for (row of field) {
         for (cell of row) {
@@ -242,38 +210,8 @@ function showAllBombs (field) {
     }
 }
 
-function arrayToHTML (array) {
-    let cells = settings.game.querySelectorAll('td');
-
-    for (let i=0; i < array.length; i++) {
-        for (let j=0; j < array[i].length; j++) { //iterate over array and refresh UI
-            let cell = cells[(i * settings.gameWidth + j)]; //get cell from one-dimension nodelist
-            let data = array[i][j];
-
-            if (data.visible === false) {
-                continue;
-            }
-
-            cell.classList.remove('bomb-cell');
-            cell.classList.remove('num-cell');
-
-            if (data.value === null) {
-                cell.innerHTML = '';
-            } else if (data.value === true) {
-                cell.classList.add('bomb-cell');
-                cell.innerHTML = settings.bombInnerHTML;
-            } else if (Number.isInteger(data.value)) {
-                cell.classList.add('num-cell')
-                cell.innerHTML = (data.value == 0) ? '' : settings.numberCellInnerHTML(data.value);
-            }
-        }
-    }
-}
-
-function isGameEnded () {
-    let field = settings.gameField;
-
-    if (isUserWon()) {
+function isGameEnded (field) {
+    if (isUserWon(field)) {
         return true;
     }
 
@@ -288,9 +226,7 @@ function isGameEnded () {
     return false;
 }
 
-function isUserWon () {
-    let field = settings.gameField;
-
+function isUserWon (field) {
     for (let row of field) {
         for (let cell of row) {
             if (!cell.visible && cell.value !== true) {
@@ -317,12 +253,3 @@ function removeEventListener (nodeList, eventString, callback) {
         node.removeEventListener(eventString, callback);
     }
 }
-
-function removeCellsEventListeners () {
-    let cells = settings.game.querySelectorAll('.game-field-cell');
-    removeEventListener(cells, 'click', handleCellClick);
-    removeEventListener(cells, 'contextmenu', handleRightClick);
-}
-
-//TODO: separate code to: prototype funcs, binding funcs, game logic
-//TODO: result display and controller buttons
