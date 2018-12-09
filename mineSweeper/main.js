@@ -83,11 +83,11 @@ function createGameField (width, height, bombCount) {
 
     //put bombs to field
     let cellIndexes = Array.from(new Array(width * height), (val, index) => index).shuffle();
-    
+
     for (let i = 0; i < bombCount; i++) {
         let index = cellIndexes.pop();
-        let row = Math.floor(index / height);
-        let col = index - row * height;
+        let row = Math.floor(index / width);
+        let col = index - row * width;
         gameField[row][col] = new GameCell(true);
     }
 
@@ -166,7 +166,7 @@ function getZeroes (clickedCell, getBorders = false) {
 
             neighbours.forEach(neighbour => {
                 let cell = getCellOfGameField(settings.gameField, neighbour[0], neighbour[1]);
-                if (cell.value !== 0 && getBorders) { //add borders if needed
+                if (cell.value !== 0 && cell.value !== true && getBorders) { //add borders if needed
                     return results.push(neighbour);
                 }
 
