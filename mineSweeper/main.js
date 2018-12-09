@@ -11,9 +11,7 @@ let settings = {
     defaultCellInnerHTML: '#',
     bombMarkedCellInnerHTML: '~',
     bombInnerHTML: `<div class="bomb-cell">B</div>`,
-    numberCellInnerHTML: (num) => { 
-        return `<div class="num-cell" style="color:${settings.numberCellColors[num]}">${num}</div>`
-    },
+    numberCellInnerHTML: (num) => `<div class="num-cell" style="color:${settings.numberCellColors[num]}">${num}</div>`,
     numberCellColors: {
         '1': '#0000ff',
         '2': '#007f00',
@@ -25,7 +23,8 @@ let settings = {
         '8': '#7f7f7f'
     },
     winMessageInnerHTML: `<div class="win-msg">YAY, you won.</div>`,
-    lostMessageInnerHTML: `<div class="lost-msg">OH NOO, you lost.</div>`
+    lostMessageInnerHTML: `<div class="lost-msg">OH NOO, you lost.</div>`,
+    settingsInputErrorInnerHTML: (message) => `<div class="error-msg">ERROR: ${message}</div>`
 };
 
 const GameCell = function (value, visible = false) {
@@ -34,9 +33,19 @@ const GameCell = function (value, visible = false) {
 };
 
 function initializeField () {
-    settings.game = document.querySelector('#app');
-    settings.gameField = createGameField(settings.gameWidth, settings.gameHeight, settings.bombCount);
+    if (settings.bombCount < 1) {
+        return displayResult(settings.settingsInputErrorInnerHTML('Bomb count must be greater that or equal to 1'));
+    } else if (settings.gameWidth < 1) {
+        return displayResult(settings.settingsInputErrorInnerHTML('Game width must be greater that or equal to 1'));
+    } else if (settings.gameHeight < 1) {
+        return displayResult(settings.settingsInputErrorInnerHTML('Game height must be greater that or equal to 1'));
+    } else if (settings.bombCount >= settings.gameWidth * settings.gameHeight) {
+        return displayResult(settings.settingsInputErrorInnerHTML('Too much bomb for this game size'));
+    } else {
+        settings.gameField = createGameField(settings.gameWidth, settings.gameHeight, settings.bombCount);
+    }
     
+    settings.game = document.querySelector('#app');
     settings.game.innerHTML = '';
     settings.game.appendChild(
         getTable(settings.gameWidth, settings.gameHeight)
