@@ -5,20 +5,21 @@
 function collectControllerData () {
     return {
         resultField: document.querySelector('#controller #result'),
-        width: document.querySelector('#width').value,
-        height: document.querySelector('#height').value,
-        bombCount: document.querySelector('#bombCount').value
+        width: document.querySelector('#width'),
+        height: document.querySelector('#height'),
+        bombCount: document.querySelector('#bombCount')
     };
 }
 
 function startNewGame () {
     let controllerData = collectControllerData();
-
     controllerData.resultField.innerHTML = '';
-    settings.gameWidth = controllerData.width;
-    settings.gameHeight = controllerData.height;
-    settings.bombCount = controllerData.bombCount;
+    controllerToSettings(controllerData, settings);
     initializeField();
+}
+
+function initializeController () {
+    settingsToController(settings, collectControllerData());
 }
 
 function displayResult (message) {

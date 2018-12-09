@@ -30,3 +30,15 @@ function gameFieldToHTML (gameTable, gameFieldMatrix) {
         }
     }
 }
+
+function settingsToController (settings, controller) {
+    controller.width.value = settings.gameWidth;
+    controller.height.value = settings.gameHeight;
+    controller.bombCount.value = settings.bombCount;
+}
+
+function controllerToSettings (data, settings) {
+    settings.gameWidth = data.width.value;
+    settings.gameHeight = data.height.value;
+    settings.bombCount = data.bombCount.value;
+}
